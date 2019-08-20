@@ -22,20 +22,21 @@ class Buggy:
 
     m      = 0.0 # mass (kg)
 
-    angle  = 0.0 # angle between +x axis and buggy forward axis (rad)
-    xpos   = 0.0 # x-position (m)
+    angle  = 0.0 # angle between ground plane and buggy forward axis (rad)
+    dist   = 0.0 # distance along course (m)
     v      = 0.0 # velocity (m/s)
 
     forces = [] # Forces on the buggy (N)
 
-    def __init__(self, m, v):
-        self.m = m
-        self.v = v
+    def __init__(self, mass, velocity, distance = 0):
+        self.m = mass
+        self.v = velocity
+        self.dist = distance
 
     def add_force(self, F):
         self.forces.append(F)
 
-    # Update everything given a delta-time dt and course information
+    # Update everything given a delta time dt and course information
     def update(self, dt, slope):
         self.angle = math.atan(slope)
 
@@ -53,12 +54,12 @@ class Buggy:
 
         # Slightly more accurate distance calculation, I think
         # TODO: get someone better at approximations to look at this
-        dist = dt * (v_new + self.v) / 2
-        self.xpos += dist * math.cos(self.angle)
+        # Delta distance for this delta time
+        dd = dt * (v_new + self.v) / 2
+        self.dist += dd * math.cos(self.angle)
 
         self.v = v_new
 
     def __str__(self):
-        return ("" + str(self.m) + "kg @ " +
-                str(self.xpos) + "m < " + str(self.angle) + "rad, "
-                + str(self.v) + "m/s")
+        return ("{:.1f}kg @ {:.3f}m ∠ {:.3f}rad, {:.3f}m/s"
+                .format(self.m,self.dist,self.angle, self.v))
