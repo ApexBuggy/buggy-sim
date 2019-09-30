@@ -108,6 +108,22 @@ class Course:
         self.axes.plot(x, y, z, label='parametric curve')
         self.axes.legend()
 
+        # Actually display
+        plt.draw()
+        plt.pause(0.001)
+
+    # Add parametric curve to plot
+    def add_curve(self, pts):
+        x = [(pt[0]) for pt in pts] # Latitude
+        y = [(pt[1]) for pt in pts] # Altitude
+        z = [(pt[2]) for pt in pts] # Longitude
+
+        self.axes.plot(x, y, z, label='parametric curve')
+
+        # Actually display
+        plt.draw()
+        plt.pause(0.001)
+
     # Plot the new position of the buggy on the visualization
     def update_plot(self, buggy):
         # Remove the old buggy marker

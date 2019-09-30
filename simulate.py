@@ -1,15 +1,28 @@
-import time
+#!/usr/bin/env python3
+
+import time, sys
 from course import Course
 from geoparse import GeoParse
 import buggy
 
+#####################
+# SIMULATION CONFIG #
+#####################
+
 # Delta Time used by simulation
-DT = 2**(-8)
+DT = 2**(-12)
 
 # Time between updating the plot
 disp_tick = 0.2
 
-gp = GeoParse("course.dat")
+# Filename with course data
+course_file = "course.dat"
+
+###################
+# SIMULATION CODE #
+###################
+
+gp = GeoParse(course_file)
 c = Course(gp.get_points())
 
 Fg = buggy.Gravity_Force()
@@ -32,7 +45,7 @@ while(t < 150):
         next_disp = start_time + last_t + disp_tick
 
         if(time.time() > next_disp):
-            print("Running slower than real-time")
+            print("[WARNING] Running slower than real-time", file = sys.stderr)
         else:
             # Sleep until next display is expected
             time.sleep(next_disp - time.time())
