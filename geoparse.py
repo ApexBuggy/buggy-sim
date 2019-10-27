@@ -1,5 +1,9 @@
 # Script for parsing data scraped from Caltopo into
 # longitude, latitude, and altitude (m)
+# To get this data, open map on Caltopo and draw path. Open the browser
+# developer tools (Ctrl+shift+c or F12, usually) and look at Network.
+# Right-click on path and select profile. A network request called "pointstats"
+# will be generated. Select that and copy the results field within.
 import re
 
 class GeoParse:
@@ -27,7 +31,8 @@ class GeoParse:
         new_pts = []
 
         # Begin with the first half of the window
-        for i in range(window//2 + 1):
+        # Definitely not a great begin/end behavior
+        for i in range(window//2):
             p = self.points[i]
             total[0] += p[0]
             total[1] += p[1]
@@ -43,6 +48,7 @@ class GeoParse:
                 total[2] -= p[2]
                 count -= 1
             if i + window//2 < len(self.points):
+                # Add a point
                 p = self.points[i + window//2]
                 total[0] += p[0]
                 total[1] += p[1]
@@ -52,6 +58,26 @@ class GeoParse:
             new_pts.append((total[0]/count, total[1]/count, total[2]/count))
 
         self.points = new_pts
+
+    # Remove everything but local minima and maxima
+    def only_extremes(self):
+        new_pts = []
+
+        for i in range(len(self.points)):
+            # Only uses altitude
+            alt = self.points[i][2]
+
+            if i == 0 or i + 1 == len(self.points):
+                # Always keep endpoints
+                new_pts.append(self.points[i])
+
+            elif ((self.points[i-1][2] <= alt > self.points[i+1][2]) or
+                  (self.points[i-1][2] >= alt < self.points[i+1][2])):
+                # Also maxima/minima. Only use the last point when duplicated
+                new_pts.append(self.points[i])
+
+        self.points = new_pts
+        print("{} extremes".format(len(self.points)))
 
     def get_points(self):
         return self.points

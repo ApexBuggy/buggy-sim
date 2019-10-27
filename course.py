@@ -4,9 +4,9 @@ import matplotlib.pyplot as plt
 # This import registers the 3D projection, but is otherwise unused.
 from mpl_toolkits.mplot3d import Axes3D  # noqa: F401 unused import
 
-# Returns the slope (altitude / d) between points of the form (d,lat,long,alt)
+# Returns the slope (altitude / d) between points of the form (lat,long,alt,d)
 def slope(p0, p1):
-    return (p1[3] - p0[3]) / (p1[0] - p0[0])
+    return (p1[2] - p0[2]) / (p1[3] - p0[3])
 
 # Representation of the buggy course
 class Course:
@@ -27,7 +27,7 @@ class Course:
         last_p = points[0]
         for p in points:
             d += geopy.distance.distance(p, last_p).m
-            self.points.append((d, p[0], p[1], p[2]))
+            self.points.append((p[0], p[1], p[2], d))
             last_p = p
 
         print("Total course distance (m): ", d)
@@ -37,7 +37,7 @@ class Course:
 
     # Returns the point at a given distance along the course
     def point_at(self, d):
-        if(d < self.points[0][0] or d > self.points[-1][0]):
+        if(d < self.points[0][3] or d > self.points[-1][3]):
             print("Invalid d to get_point:", d)
             return None
         else:
@@ -47,21 +47,21 @@ class Course:
             # Optimize by checking last-used point first.
             # TODO: Optimize further, e.g. check next point as well
             if(self.last_idx > 0 and
-               self.points[self.last_idx - 1][0] < d and
-               self.points[self.last_idx][0] >= d):
+               self.points[self.last_idx - 1][3] < d and
+               self.points[self.last_idx][3] >= d):
                 idx = self.last_idx
             else:
                 # TODO: binary search
-                while(idx + 1 < len(self.points) and self.points[idx][0] <= d):
+                while(idx + 1 < len(self.points) and self.points[idx][3] <= d):
                     idx += 1
 
                 self.last_idx = idx
 
-            # assert(self.points[idx][0] > d or idx == len(self.points) - 1)
-            # assert(self.points[idx-1][0] <= d)
+            # assert(self.points[idx][3] > d or idx == len(self.points) - 1)
+            # assert(self.points[idx-1][3] <= d)
 
-            weight = ((d - self.points[idx - 1][0]) /
-                      (self.points[idx][0] - self.points[idx - 1][0]))
+            weight = ((d - self.points[idx - 1][3]) /
+                      (self.points[idx][3] - self.points[idx - 1][3]))
             # assert(0 <= weight <= 1)
 
             return tuple([(1 - weight) * self.points[idx - 1][i] +
@@ -71,10 +71,10 @@ class Course:
     # At a point, the slope of the preceding line segment is used,
     # except for at the first point, where it is the slope of the following line
     def slope_at(self, d):
-        if(d < self.points[0][0] or d > self.points[-1][0]):
+        if(d < self.points[0][3] or d > self.points[-1][3]):
             print("Invalid d to get_slope:", d)
             return None
-        elif(d == self.points[0][0]): # Float == ok, only for exact cases anyway
+        elif(d == self.points[0][3]): # Float == ok, only for exact cases anyway
             return slope(self.points[0], self.points[1])
         else:
             idx = 0
@@ -82,47 +82,44 @@ class Course:
             # Optimize by checking last-used point first.
             # TODO: Optimize further, e.g. check next point as well
             if(self.last_idx > 0 and
-               self.points[self.last_idx - 1][0] < d and
-               self.points[self.last_idx][0] >= d):
+               self.points[self.last_idx - 1][3] < d and
+               self.points[self.last_idx][3] >= d):
                 idx = self.last_idx
             else:
                 # TODO: binary search
-                while(idx + 1 < len(self.points) and self.points[idx][0] < d):
+                while(idx + 1 < len(self.points) and self.points[idx][3] < d):
                     idx += 1
                 self.last_idx = idx
 
-            # assert(self.points[idx][0] > d or idx == len(self.points) - 1)
-            # assert(self.points[idx-1][0] <= d)
+            # assert(self.points[idx][3] > d or idx == len(self.points) - 1)
+            # assert(self.points[idx-1][3] <= d)
 
             return slope(self.points[idx - 1], self.points[idx])
 
     # Initialize the visualization plot and graph the course
-    def init_plot(self):
+    def init_plot(self, show_course = True):
         plt.rcParams['legend.fontsize'] = 10
         self.axes = plt.figure().gca(projection='3d')
 
-        x = [(pt[1]) for pt in self.points] # Latitude
-        y = [(pt[2]) for pt in self.points] # Altitude
-        z = [(pt[3]) for pt in self.points] # Longitude
-
-        self.axes.plot(x, y, z, label='parametric curve')
-        self.axes.legend()
-
+        if show_course:
+            self.add_curve(self.points, 'course')
+        plt.ion()
         # Actually display
         plt.draw()
         plt.pause(0.001)
 
     # Add parametric curve to plot
-    def add_curve(self, pts):
+    def add_curve(self, pts, label='parametric curve'):
         x = [(pt[0]) for pt in pts] # Latitude
         y = [(pt[1]) for pt in pts] # Altitude
         z = [(pt[2]) for pt in pts] # Longitude
 
-        self.axes.plot(x, y, z, label='parametric curve')
+        self.axes.plot(x, y, z, label=label)
+        self.axes.legend()
 
         # Actually display
-        plt.draw()
-        plt.pause(0.001)
+        # plt.draw()
+        # plt.pause(0.001)
 
     # Plot the new position of the buggy on the visualization
     def update_plot(self, buggy):
@@ -133,7 +130,7 @@ class Course:
 
         # Plot a new buggy marker
         buggy_pt = self.point_at(buggy.dist)
-        self.axes.plot([buggy_pt[1]],[buggy_pt[2]],[buggy_pt[3]], color="orange", marker="o")
+        self.axes.plot([buggy_pt[0]],[buggy_pt[1]],[buggy_pt[2]], color="orange", marker="o")
 
         plt.draw()
         plt.pause(0.001)
