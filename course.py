@@ -101,12 +101,16 @@ class Course:
         plt.rcParams['legend.fontsize'] = 10
         self.axes = plt.figure().gca(projection='3d')
 
+        # Quit when we close the plot
+        plt.gcf().canvas.mpl_connect('close_event', quit)
+
         if show_course:
+            # Add a curve, which will display
             self.add_curve(self.points, 'course')
-        plt.ion()
-        # Actually display
-        plt.draw()
-        plt.pause(0.001)
+        else:
+            # Display otherwise
+            plt.draw()
+            plt.pause(0.001)
 
     # Add parametric curve to plot
     def add_curve(self, pts, label='parametric curve'):
@@ -118,8 +122,8 @@ class Course:
         self.axes.legend()
 
         # Actually display
-        # plt.draw()
-        # plt.pause(0.001)
+        plt.draw()
+        plt.pause(0.001)
 
     # Plot the new position of the buggy on the visualization
     def update_plot(self, buggy):

@@ -25,39 +25,72 @@ class GeoParse:
     # Smooth the data
     # Window is the number of data points in averaging window
     def smooth(self, window = 5):
-        total = [0,0,0] # Running sum of data
-        count = 0       # Number of data points in total
+        self.smooth_range(range(len(self.points)), window)
 
+    # Smooth the data in a range
+    # Window is the number of data points in averaging window,
+    # idx_range is the range of indices to smooth (incl. low, excl. high)
+    def smooth_range(self, idx_range, window):
+        assert len(idx_range) > window, \
+            "Range must be at least as large as window"
+        assert window % 2 == 1, \
+            "window must be odd"
+
+        # Array of smoothed points, temp storage before in-place replacement
         new_pts = []
 
-        # Begin with the first half of the window
-        # Definitely not a great begin/end behavior
-        for i in range(window//2):
-            p = self.points[i]
-            total[0] += p[0]
-            total[1] += p[1]
-            total[2] += p[2]
-            count += 1
+        # New point is the average of the window points surrounding that index
+        # If that window would go outside of idx_range, clip the window on
+        #   both ends (to prevent discontinuities when two ranges join)
 
-        for i in range(len(self.points)):
-            if i - window//2 >= 0:
-                # Remove a point
-                p = self.points[i - window//2]
-                total[0] -= p[0]
-                total[1] -= p[1]
-                total[2] -= p[2]
-                count -= 1
-            if i + window//2 < len(self.points):
-                # Add a point
-                p = self.points[i + window//2]
-                total[0] += p[0]
-                total[1] += p[1]
-                total[2] += p[2]
-                count += 1
+        # Example
+        # Window 5, range [3, 10)
+        #       3 4 5
+        #     3 4 5 6 7
+        #   3 4 5 6 7 8 9
+        #     5 6 7 8 9
+        #       7 8 9
+        #
+        # / 1 3 5 5 5 3 1
 
-            new_pts.append((total[0]/count, total[1]/count, total[2]/count))
+        # Smooth the opening of the window
+        for i in range(window // 2):
+            new_pt = [0,0,0] # Sum of points in window
+            count = 2 * i + 1
 
-        self.points = new_pts
+            for p in self.points[idx_range.start:idx_range.start + 2 * i + 1]:
+                for component in range(len(p)):
+                    new_pt[component] += p[component]
+
+            new_pts.append((new_pt[0]/count, new_pt[1]/count, new_pt[2]/count))
+
+        # Smooth the middle
+        for i in range(idx_range.start + window // 2,
+                       idx_range.stop - window // 2):
+            new_pt = [0,0,0] # Sum of points in window
+            count = window
+
+            for p in self.points[i - window // 2:i + window // 2 + 1]:
+                for component in range(len(p)):
+                    new_pt[component] += p[component]
+
+            new_pts.append((new_pt[0]/count, new_pt[1]/count, new_pt[2]/count))
+
+        # Smooth the closing of the window
+        for i in reversed(range(window // 2)):
+            new_pt = [0,0,0] # Sum of points in window
+            count = 2 * i + 1
+
+            for p in self.points[idx_range.stop - 2*i - 1:idx_range.stop]:
+                for component in range(len(p)):
+                    new_pt[component] += p[component]
+
+            new_pts.append((new_pt[0]/count, new_pt[1]/count, new_pt[2]/count))
+
+        # We should create exactly as many points as are in the range
+        assert(len(new_pts) == len(idx_range))
+        for i in range(len(new_pts)):
+            self.points[idx_range.start + i] = new_pts[i]
 
     # Remove everything but local minima and maxima
     def only_extremes(self):
@@ -76,8 +109,10 @@ class GeoParse:
                 # Also maxima/minima. Only use the last point when duplicated
                 new_pts.append(self.points[i])
 
+        original_idxs = [self.points.index(p) for p in new_pts]
+
         self.points = new_pts
-        print("{} extremes".format(len(self.points)))
+        print("{} extremes at indices {}".format(len(self.points), original_idxs))
 
     def get_points(self):
         return self.points

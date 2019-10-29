@@ -22,15 +22,28 @@ class Buggy:
 
     m      = 0.0 # mass (kg)
 
+    # This is a little janky because it isn't about one axis;
+    # rather, it is the sum of the moments of inertia of the wheels,
+    # each about their axes of rotation.
+    I      = 0.0 # moment of inertia (kg * m^2)
+    r_w    = 0.0 # Radius of each wheel (m)
+
     angle  = 0.0 # angle between ground plane and buggy forward axis (rad)
     dist   = 0.0 # distance along course (m)
     v      = 0.0 # velocity (m/s)
 
     forces = [] # Forces on the buggy (N)
 
-    def __init__(self, mass, velocity, distance = 0):
+    def __init__(self,
+                 mass,             # Constant mass of buggy (kg)
+                 velocity = 0,     # Initial velocity (m/s)
+                 angular_mass = 0, # Constant moment of inertia (see I above)
+                 wheel_radius = 0, # Constant wheel radius (m)
+                 distance = 0):    # Initial distance along the course (m)
         self.m = mass
         self.v = velocity
+        self.I = angular_mass
+        self.r_w = wheel_radius
         self.dist = distance
 
     def add_force(self, F):
@@ -40,7 +53,7 @@ class Buggy:
     def update(self, dt, slope):
         self.angle = math.atan(slope)
 
-        # Total force on buggy
+        # Compute the total force on buggy
         F = sum([f.F(self) for f in self.forces])
 
         # Acceleration

@@ -13,10 +13,21 @@ c = Course(gp.get_points())
 c.init_plot(show_course = False)
 c.add_curve(gp.get_points(), "course")
 
-# gp.smooth(23)
-# c.add_curve(gp.get_points(), "smoothed")
+# Hill 1 to a little way down the steepest part of the free roll,
+# less smoothed so the top of the hill doesn't lower (and because
+# the data at the beginning of the course is more smooth)
+gp.smooth_range(range(0, 56), 7)
 
-# gp.only_extremes()
-# c.add_curve(gp.get_points(), "extremes")
+# Slight overlap with previous to smooth the boundary (which is
+# sketchy because smoothing is not associative). Smooth until the
+# end. Pulls the chute turn in a little bit more than is probably
+# realistic (turn is more gradual than it should be), and doesn't
+# quite smooth the end of hill 5. This part of the data is much
+# noisier, so more smoothing is required
+gp.smooth_range(range(48, len(gp.points)), 17)
+c.add_curve(gp.get_points(), "smoothed")
+
+gp.only_extremes()
+c.add_curve(gp.get_points(), "extremes")
 
 input("Press enter to close")
