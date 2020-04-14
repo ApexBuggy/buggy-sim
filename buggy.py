@@ -5,8 +5,8 @@ import math
 class Force:
     # F : Buggy -> float
     # Returns the force (in N) on the input based on its mass, velocity, etc.
-    # Positive axis is forward on the buggy, so rolling resistance e.g.
-    # should not require trig, but gravity will.
+    # The force is in the direction of the buggy's forward axis, so
+    # rolling resistance e.g. should not require trig, but gravity will.
     F = None
 
 class Gravity_Force(Force):
@@ -25,7 +25,7 @@ class Buggy:
     # This is a little janky because it isn't about one axis;
     # rather, it is the sum of the moments of inertia of the wheels,
     # each about their axes of rotation.
-    I      = 0.0 # moment of inertia (kg * m^2)
+    I      = 0.0 # Total moment of inertia (kg * m^2)
     r_w    = 0.0 # Radius of each wheel (m)
 
     angle  = 0.0 # angle between ground plane and buggy forward axis (rad)
@@ -38,7 +38,7 @@ class Buggy:
                  mass,             # Constant mass of buggy (kg)
                  velocity = 0,     # Initial velocity (m/s)
                  angular_mass = 0, # Constant moment of inertia (see I above)
-                 wheel_radius = 0, # Constant wheel radius (m)
+                 wheel_radius = 1, # Constant wheel radius (m)
                  distance = 0):    # Initial distance along the course (m)
         self.m = mass
         self.v = velocity
@@ -53,11 +53,20 @@ class Buggy:
     def update(self, dt, slope):
         self.angle = math.atan(slope)
 
-        # Compute the total force on buggy
+        # Compute the sum of all the forces we model on the buggy
+        # F is defined to be in the same direction as the buggy
         F = sum([f.F(self) for f in self.forces])
 
-        # Acceleration
-        a = F / self.m
+        # NB: There is Technically a force on the wheels due to static
+        # friction, which is not modeled as its own force but is
+        # incorporated in the below calculation involving moment of
+        # inertia. It is not like a typical force because the magnitude
+        # is a function of the sum of the other forces on the buggy.
+        # We assume that the wheels do not slip in the direction of
+        # motion, i.e. that maximum static friction is infinite.
+
+        # Compute acceleration based on mass and moment of inertia
+        a = F / (self.m + self.I / (self.r_w**2))
 
         # New velocity
         # a = (v_new - v_old) / dt
@@ -73,6 +82,7 @@ class Buggy:
 
         self.v = v_new
 
+    # Return a string representation of the important stats of the buggy
     def __str__(self):
         return ("{:.1f}kg @ {:.3f}m ∠ {:.3f}rad, {:.3f}m/s"
                 .format(self.m,self.dist,self.angle, self.v))

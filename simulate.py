@@ -65,7 +65,7 @@ Fg = buggy.Gravity_Force()
 # wheel radius = 0 for now
 # distance = 180m is a little past hill 2, for testing
 b = buggy.Buggy(mass = 55, velocity = 0,
-                angular_mass = 0, wheel_radius = 0, distance = 180)
+                angular_mass = 0.015, wheel_radius = 0.1, distance = 180)
 
 # Assign the buggy force due to gravity
 b.add_force(Fg)
